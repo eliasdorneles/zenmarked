@@ -112,15 +112,31 @@ body {
 
 .container {
     display: grid;
-    grid-template-columns: 260px 1fr 1fr;
+    grid-template-columns: 260px 4px 1fr 4px 1fr;
     height: 100vh;
+}
+
+.resize-handle {
+    background: var(--border-color);
+    cursor: col-resize;
+    z-index: 10;
+    transition: background 0.15s;
+}
+
+.resize-handle:hover,
+.resize-handle.dragging {
+    background: var(--accent-hover);
+}
+
+body.resizing {
+    user-select: none;
+    cursor: col-resize;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 
 .sidebar {
     background: var(--sidebar-bg);
-    border-right: 4px solid var(--border-color);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -329,7 +345,6 @@ body.theme-light .theme-toggle .icon-moon { display: block; }
     display: flex;
     flex-direction: column;
     background: var(--panel-bg);
-    border-right: 4px solid var(--border-color);
     overflow: hidden;
 }
 

@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const savedTheme = localStorage.getItem('zenmarked-theme');
     const theme = config.themeExplicit ? config.theme : (savedTheme || config.theme);
     applyTheme(theme);
+    initResizableColumns();
     setupCodeMirror();
     setupDropZone();
     setupPasteHandler();
@@ -887,4 +888,93 @@ async function submitRename() {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
     }
+}
+
+// Resizable columns
+function initResizableColumns() {
+    const container = document.querySelector('.container');
+    const handle1 = document.getElementById('resizeHandle1'); // sidebar | editor
+    const handle2 = document.getElementById('resizeHandle2'); // editor | preview
+    const sidebar = document.querySelector('.sidebar');
+    const editorPanel = document.querySelector('.editor-panel');
+
+    const STORAGE_KEY = 'zenmarked-col-widths';
+    const MIN_SIDEBAR = 160;
+    const MIN_EDITOR = 200;
+    const MIN_PREVIEW = 200;
+    const HANDLE_TOTAL = 8; // two 4px handles
+
+    function available() {
+        return container.getBoundingClientRect().width - HANDLE_TOTAL;
+    }
+
+    // All three columns are fr units so they scale proportionally on window resize.
+    // sidebarRatio + editorRatio + previewRatio = 1
+    function applyRatios(sidebarRatio, editorRatio) {
+        const previewRatio = 1 - sidebarRatio - editorRatio;
+        container.style.gridTemplateColumns =
+            `${sidebarRatio}fr 4px ${editorRatio}fr 4px ${previewRatio}fr`;
+    }
+
+    const saved = (() => {
+        try {
+            const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (s && s.sidebarRatio && s.editorRatio) return s;
+        } catch {}
+        return null;
+    })();
+
+    if (saved) {
+        applyRatios(saved.sidebarRatio, saved.editorRatio);
+    } else {
+        const avail = available();
+        const sidebarRatio = 260 / avail;
+        const editorRatio = (1 - sidebarRatio) / 2;
+        applyRatios(sidebarRatio, editorRatio);
+    }
+
+    function makeResizable(handle, computeNewPx) {
+        handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            document.body.classList.add('resizing');
+            handle.classList.add('dragging');
+            const startX = e.clientX;
+            const startSidebarPx = sidebar.getBoundingClientRect().width;
+            const startEditorPx = editorPanel.getBoundingClientRect().width;
+
+            function onMove(e) {
+                const dx = e.clientX - startX;
+                const avail = available();
+                const { sidebarPx, editorPx } = computeNewPx(dx, startSidebarPx, startEditorPx, avail);
+                applyRatios(sidebarPx / avail, editorPx / avail);
+            }
+
+            function onUp() {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                document.body.classList.remove('resizing');
+                handle.classList.remove('dragging');
+                const avail = available();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    sidebarRatio: sidebar.getBoundingClientRect().width / avail,
+                    editorRatio: editorPanel.getBoundingClientRect().width / avail,
+                }));
+            }
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+    }
+
+    // Handle 1: drag moves sidebar/editor boundary — sidebar grows/shrinks, preview absorbs the rest
+    makeResizable(handle1, (dx, startSidebarPx, startEditorPx, avail) => ({
+        sidebarPx: Math.max(MIN_SIDEBAR, Math.min(startSidebarPx + dx, avail - startEditorPx - MIN_PREVIEW)),
+        editorPx: startEditorPx,
+    }));
+
+    // Handle 2: drag moves editor/preview boundary — editor grows/shrinks
+    makeResizable(handle2, (dx, startSidebarPx, startEditorPx, avail) => ({
+        sidebarPx: startSidebarPx,
+        editorPx: Math.max(MIN_EDITOR, Math.min(startEditorPx + dx, avail - startSidebarPx - MIN_PREVIEW)),
+    }));
 }
