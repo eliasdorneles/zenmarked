@@ -29,16 +29,16 @@ uv run zenmarked.py [FILE.md] [options]
 
 ```bash
 # Open CWD — sidebar shows all .md files, create/edit freely
-uv run zenmarked.py
+uv run zenmarked
 
 # Open a specific file
-uv run zenmarked.py notes.md
+uv run zenmarked notes.md
 
 # Light theme, custom port
-uv run zenmarked.py journal.md --theme light --port 8080
+uv run zenmarked journal.md --theme light --port 8080
 
 # Custom image directory, no autosave
-uv run zenmarked.py docs/readme.md --image-dir docs/assets/imgs --no-autosave
+uv run zenmarked docs/readme.md --image-dir docs/assets/imgs --no-autosave
 ```
 
 ## Features
