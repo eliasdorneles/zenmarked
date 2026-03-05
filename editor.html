@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zenmarked</title>
+    <link rel="stylesheet" href="/static/editor.css">
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>zenmarked</h1>
+                <button class="btn btn-new" onclick="createNewFile()">+ New File</button>
+                <input type="text" class="search-input" placeholder="Search files..." id="searchInput" oninput="filterFiles()">
+            </div>
+            <div class="file-list" id="fileList"></div>
+            <div class="image-gallery-section">
+                <div class="image-gallery-header">Image Gallery</div>
+                <div class="image-gallery" id="imageGallery"></div>
+            </div>
+        </div>
+
+        <!-- Editor Panel -->
+        <div class="editor-panel">
+            <div id="editorContent" style="display: none;">
+                <div class="editor-header">
+                    <div class="editor-filename" id="editorFilename"></div>
+                    <div class="editor-actions">
+                        <button class="btn btn-danger" id="deleteBtn" onclick="deleteFile()" title="Delete file">Delete</button>
+                    </div>
+                </div>
+                <div class="editor-body">
+                    <textarea class="editor-textarea" id="fileBody" placeholder="Write your markdown here..."></textarea>
+                    <div class="drop-zone" id="dropZone">
+                        Drop images here or click to upload
+                        <input type="file" id="fileInput" style="display: none" accept="image/*" onchange="handleFileSelect(event)">
+                    </div>
+                </div>
+                <div class="save-indicator" id="saveIndicator">
+                    <span id="saveStatus">Ready</span>
+                </div>
+            </div>
+            <div id="editorEmpty" class="empty-state">
+                <p>Select a file to edit or create a new one</p>
+                <button class="btn" onclick="createNewFile()">+ New File</button>
+            </div>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="preview-panel" id="previewPanel">
+            <div class="empty-state">
+                <p>Preview will appear here</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Insertion Modal -->
+    <div class="modal-overlay" id="imageModal">
+        <div class="modal">
+            <h2>Insert Image</h2>
+            <img class="modal-preview" id="modalImagePreview" src="" alt="Preview">
+            <input type="hidden" id="modalImageUrl">
+
+            <div class="modal-field">
+                <label>Alt Text</label>
+                <input type="text" id="imageAlt" placeholder="Describe the image...">
+            </div>
+
+            <div class="modal-field">
+                <label>Caption (optional)</label>
+                <input type="text" id="imageCaption" placeholder="Caption text...">
+            </div>
+
+            <div class="modal-field">
+                <label>Alignment</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="alignment" value="none" checked> None</label>
+                    <label><input type="radio" name="alignment" value="left"> Left</label>
+                    <label><input type="radio" name="alignment" value="right"> Right</label>
+                    <label><input type="radio" name="alignment" value="center"> Center</label>
+                </div>
+            </div>
+
+            <div class="modal-field">
+                <label>Width</label>
+                <div class="width-field">
+                    <div class="width-toggle">
+                        <button type="button" id="widthAutoBtn" class="active">Auto</button>
+                        <button type="button" id="widthCustomBtn">Custom</button>
+                    </div>
+                    <div class="width-input-wrapper">
+                        <input type="number" id="imageWidth" placeholder="400" disabled>
+                        <span>px</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeImageModal()">Cancel</button>
+                <button class="btn" id="imageModalSubmit" onclick="insertImage()">Insert</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu for Gallery Images -->
+    <div class="context-menu" id="galleryContextMenu">
+        <div class="context-menu-item" onclick="openRenameModal(contextMenuFilename)">Rename...</div>
+    </div>
+
+    <!-- Rename Image Modal -->
+    <div class="modal-overlay" id="renameModal">
+        <div class="modal">
+            <h2>Rename Image</h2>
+            <img class="modal-preview" id="renameModalPreview" src="" alt="Preview">
+
+            <div class="modal-field">
+                <label>Current Name</label>
+                <div class="current-filename" id="renameCurrentName"></div>
+            </div>
+
+            <div class="modal-field">
+                <label>New Name</label>
+                <div class="rename-input-wrapper">
+                    <input type="text" id="renameNewName" placeholder="new-filename">
+                    <span class="rename-extension" id="renameExtension">.png</span>
+                </div>
+            </div>
+
+            <div class="modal-field">
+                <label>Affected Files</label>
+                <div class="affected-posts" id="affectedFiles">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeRenameModal()">Cancel</button>
+                <button class="btn" id="renameSubmitBtn" onclick="submitRename()">Rename</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- marked.js (MIT License) - Markdown parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- CodeMirror -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/markdown/markdown.min.js"></script>
+    <script src="/static/editor.js"></script>
+</body>
+</html>
