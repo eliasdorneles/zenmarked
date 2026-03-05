@@ -404,6 +404,11 @@ def serve_image(filename: str):
     return send_from_directory(IMAGE_DIR, filename)
 
 
+@app.route("/static/vendor/<path:filename>")
+def serve_vendor(filename: str):
+    return send_from_directory(EDITOR_DIR / "vendor", filename)
+
+
 @app.route("/static/editor.css")
 def serve_editor_css():
     return send_file(EDITOR_DIR / "editor.css", mimetype="text/css")
