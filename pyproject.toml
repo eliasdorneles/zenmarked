@@ -11,6 +11,12 @@ dependencies = [
 [project.scripts]
 zenmarked = "zenmarked:main"
 
+[tool.setuptools.packages.find]
+include = ["zenmarked*"]
+
+[tool.setuptools.package-data]
+zenmarked = ["editor.html", "editor.css", "editor.js", "vendor/**/*"]
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
