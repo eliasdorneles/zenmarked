@@ -40,7 +40,7 @@ def parse_args():
         help="Directory for uploaded images (default: images/ inside working dir)",
     )
     parser.add_argument("--no-autosave", action="store_true", help="Disable auto-save (Ctrl+S only)")
-    parser.add_argument("--theme", choices=["light", "dark"], default="dark", help="Color theme (default: dark)")
+    parser.add_argument("--theme", choices=["light", "dark"], default=None, help="Color theme (default: light)")
     parser.add_argument("--no-browser", action="store_true", help="Don't auto-open browser on start")
     return parser.parse_args()
 
@@ -78,7 +78,8 @@ except ValueError:
     IMAGE_DIR_REL = Path(IMAGE_DIR.name)
 
 AUTOSAVE_ENABLED = not args.no_autosave
-THEME = args.theme
+THEME = args.theme or "light"
+THEME_EXPLICIT = args.theme is not None
 PORT = args.port
 
 print(f"Working directory: {WORKING_DIR}")
@@ -207,6 +208,7 @@ def get_config():
     return jsonify({
         "autosave": AUTOSAVE_ENABLED,
         "theme": THEME,
+        "themeExplicit": THEME_EXPLICIT,
         "initialFile": INITIAL_FILE,
         "workingDir": str(WORKING_DIR),
         "imagePrefix": image_markdown_prefix(),

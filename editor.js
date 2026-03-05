@@ -15,7 +15,9 @@ let config = {}; // loaded from /api/config
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     await loadConfig();
-    applyTheme(config.theme || 'dark');
+    const savedTheme = localStorage.getItem('zenmarked-theme');
+    const theme = config.themeExplicit ? config.theme : (savedTheme || config.theme);
+    applyTheme(theme);
     setupCodeMirror();
     setupDropZone();
     setupPasteHandler();
@@ -43,20 +45,38 @@ async function loadConfig() {
     }
 }
 
-// Apply theme class to body
+// Apply theme class to body and update CodeMirror theme
 function applyTheme(theme) {
     document.body.classList.remove('theme-dark', 'theme-light');
     document.body.classList.add(`theme-${theme}`);
+
+    if (cmEditor) {
+        cmEditor.setOption('theme', theme === 'dark' ? 'dracula' : 'default');
+    }
+
+    const toggle = document.getElementById('themeToggle');
+    if (toggle) {
+        toggle.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+    }
+}
+
+// Toggle between dark and light, persisting to localStorage
+function toggleTheme() {
+    const isDark = document.body.classList.contains('theme-dark');
+    const newTheme = isDark ? 'light' : 'dark';
+    applyTheme(newTheme);
+    localStorage.setItem('zenmarked-theme', newTheme);
 }
 
 // Setup CodeMirror
 function setupCodeMirror() {
     const textarea = document.getElementById('fileBody');
+    const isDark = document.body.classList.contains('theme-dark');
     cmEditor = CodeMirror.fromTextArea(textarea, {
         mode: 'markdown',
         lineNumbers: false,
         lineWrapping: true,
-        theme: 'default',
+        theme: isDark ? 'dracula' : 'default',
         autofocus: false,
         viewportMargin: Infinity,
     });
@@ -276,7 +296,7 @@ function updatePreview() {
     );
 
     const html = marked.parse(previewContent);
-    document.getElementById('previewPanel').innerHTML = html;
+    document.getElementById('previewPanel').innerHTML = `<div class="preview-content">${html}</div>`;
 }
 
 // UI Helpers
