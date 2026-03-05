@@ -604,6 +604,11 @@ function setupKeyboardShortcuts() {
                 insertImage();
             }
         }
+
+        if (e.key === 'Enter' && document.getElementById('renameModal').classList.contains('active')) {
+            e.preventDefault();
+            submitRename();
+        }
     });
 }
 
