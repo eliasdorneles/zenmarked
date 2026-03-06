@@ -91,13 +91,13 @@ fi
 info "Updating pyproject.toml..."
 sed -i "s/^version = \".*\"/version = \"$NEW_VERSION\"/" pyproject.toml
 
-# Update version in src/zenmarked/__init__.py
-info "Updating src/zenmarked/__init__.py..."
-sed -i "s/^__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" src/zenmarked/__init__.py
+# Update version in zenmarked/__init__.py
+info "Updating zenmarked/__init__.py..."
+sed -i "s/^__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" zenmarked/__init__.py
 
 # Verify the updates worked
 VERIFY_PYPROJECT=$(grep '^version = ' pyproject.toml | cut -d'"' -f2)
-VERIFY_INIT=$(grep '^__version__ = ' src/zenmarked/__init__.py | cut -d'"' -f2)
+VERIFY_INIT=$(grep '^__version__ = ' zenmarked/__init__.py | cut -d'"' -f2)
 
 if [[ "$VERIFY_PYPROJECT" != "$NEW_VERSION" ]] || [[ "$VERIFY_INIT" != "$NEW_VERSION" ]]; then
     error "Version update verification failed"
@@ -105,7 +105,7 @@ fi
 
 # Stage modified files
 info "Staging changes..."
-git add pyproject.toml src/zenmarked/__init__.py
+git add pyproject.toml zenmarked/__init__.py
 
 # Create commit
 info "Creating commit..."
