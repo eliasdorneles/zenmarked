@@ -11,6 +11,8 @@ let editPosition = null; // { startLine, endLine } of image being edited
 let editIsExternal = false; // true when editing an external URL image
 let contextMenuFilename = null; // filename for context menu actions
 let config = {}; // loaded from /api/config
+let serverOnline = true;
+let heartbeatInterval = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -33,6 +35,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (config.initialFile) {
         await loadFile(config.initialFile);
     }
+
+    startHeartbeat();
 });
 
 // Load config from server
@@ -131,8 +135,52 @@ async function loadFile(filename) {
     }
 }
 
+function startHeartbeat() {
+    heartbeatInterval = setInterval(checkServer, 5000);
+}
+
+async function checkServer() {
+    try {
+        await fetch('/api/config');
+        onServerOnline();
+    } catch {
+        onServerOffline();
+    }
+}
+
+function onServerOffline() {
+    if (serverOnline) {
+        serverOnline = false;
+        showServerDownModal();
+    }
+}
+
+function onServerOnline() {
+    if (!serverOnline) {
+        serverOnline = true;
+        hideServerDownModal();
+        saveFile();
+    }
+}
+
+function showServerDownModal() {
+    const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+    document.getElementById('restartCommand').textContent = `zenmarked --port ${port} --no-browser`;
+    document.getElementById('serverDownOverlay').classList.remove('hidden');
+}
+
+function hideServerDownModal() {
+    document.getElementById('serverDownOverlay').classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btnContinueEditing').addEventListener('click', hideServerDownModal);
+    // btnWaitForServer does nothing — modal stays until server comes back
+});
+
 async function saveFile() {
     if (!currentFile) return;
+    if (!serverOnline) return;
 
     setSaveStatus('saving', 'Saving...');
 

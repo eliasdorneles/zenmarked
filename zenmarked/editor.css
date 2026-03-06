@@ -1036,3 +1036,90 @@ body.theme-light .CodeMirror-selected {
 
 .affected-post-item .post-title { color: var(--text-color); }
 .affected-post-item .ref-count { color: var(--text-muted); font-size: 12px; margin-left: 8px; }
+
+/* ── Server Down Modal ───────────────────────────────────────────────────── */
+
+.server-down-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.server-down-overlay.hidden {
+    display: none;
+}
+
+.server-down-modal {
+    background: var(--panel-bg);
+    border: 4px solid var(--border-color);
+    border-radius: 8px;
+    padding: 28px 32px;
+    width: 480px;
+    max-width: 90vw;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+    color: var(--text-color);
+}
+
+.server-down-modal h2 {
+    margin-bottom: 14px;
+    color: var(--accent-color);
+    font-size: 18px;
+}
+
+.server-down-modal p {
+    margin-bottom: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
+.server-down-modal pre {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 13px;
+    color: var(--accent-color);
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.server-down-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.server-down-actions button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid var(--input-border);
+    background: transparent;
+    color: var(--text-color);
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.server-down-actions button:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+.server-down-actions button.primary {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+.server-down-actions button.primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: white;
+}
