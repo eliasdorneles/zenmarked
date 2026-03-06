@@ -3,6 +3,7 @@ name = "zenmarked"
 version = "0.2.0"
 description = "Standalone markdown editor with live preview and image support"
 readme = "README.md"
+urls = {Homepage = "https://github.com/eliasdorneles/zenmarked"}
 requires-python = ">=3.11"
 dependencies = [
     "flask>=3.1.0",
