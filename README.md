@@ -38,7 +38,7 @@ zenmarked [FILE.md] [options]
 
 | Option | Description |
 |--------|-------------|
-| `--port PORT` | Port to listen on (default: 5055) |
+| `--port PORT` | Port to listen on (default: auto-assign) |
 | `--image-dir PATH` | Directory for uploaded images (default: `images/` inside working dir) |
 | `--no-autosave` | Disable auto-save (use Ctrl+S only) |
 | `--theme THEME` | Color theme: `light` or `dark` (default: `dark`) |

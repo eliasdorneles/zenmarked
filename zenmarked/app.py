@@ -33,7 +33,7 @@ def parse_args():
         help="Markdown file to open (created if it doesn't exist). "
              "Its directory becomes the working directory.",
     )
-    parser.add_argument("--port", type=int, default=5055, help="Port to listen on (default: 5055)")
+    parser.add_argument("--port", type=int, default=0, help="Port to listen on (default: auto-assign)")
     parser.add_argument(
         "--image-dir",
         metavar="PATH",
@@ -401,10 +401,14 @@ def main():
 
     # ── Run ───────────────────────────────────────────────────────────────────────
 
-    url = f"http://127.0.0.1:{port}"
+    from werkzeug.serving import make_server
+
+    server = make_server("127.0.0.1", port, app)
+    actual_port = server.socket.getsockname()[1]
+    url = f"http://127.0.0.1:{actual_port}"
     print(f"Starting zenmarked at {url}")
 
     if not args.no_browser:
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
 
-    app.run(host="127.0.0.1", port=port, debug=False)
+    server.serve_forever()
