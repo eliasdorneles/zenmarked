@@ -203,6 +203,10 @@ async function saveFile() {
 }
 
 async function createNewFile() {
+    if (!serverOnline) {
+        showServerDownModal();
+        return;
+    }
     const filename = prompt('Enter filename:', 'untitled.md');
     if (!filename) return;
 
