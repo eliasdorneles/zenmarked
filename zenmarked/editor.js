@@ -275,6 +275,7 @@ function renderEditor() {
         document.getElementById('editorContent').style.display = 'none';
         document.getElementById('editorEmpty').style.display = 'flex';
         document.getElementById('previewPanel').innerHTML = '<div class="empty-state"><p>Preview will appear here</p></div>';
+        updateWindowTitle(null, null);
         return;
     }
 
@@ -298,6 +299,7 @@ function updatePreview() {
 
     const html = marked.parse(previewContent);
     document.getElementById('previewPanel').innerHTML = `<div class="preview-content">${html}</div>`;
+    updateWindowTitle(currentFile ? currentFile.filename : null, content);
 }
 
 // UI Helpers
@@ -338,6 +340,30 @@ function escapeAttr(text) {
 
 function escapeRegex(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractDocumentTitle(content) {
+    const match = content.match(/^#{1,6}\s+(.+)$/m);
+    if (!match) return null;
+    // Strip common inline markdown formatting from the heading text
+    return match[1]
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')  // [text](url) → text
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '')       // ![alt](url) → (remove images)
+        .replace(/(\*\*|__)(.*?)\1/g, '$2')         // **bold** → bold
+        .replace(/(\*|_)(.*?)\1/g, '$2')            // *italic* → italic
+        .replace(/`([^`]+)`/g, '$1')                // `code` → code
+        .trim();
+}
+
+function updateWindowTitle(filename, content) {
+    const docTitle = content ? extractDocumentTitle(content) : null;
+    if (docTitle) {
+        document.title = `${docTitle} — zenmarked`;
+    } else if (filename) {
+        document.title = `${filename} — zenmarked`;
+    } else {
+        document.title = 'zenmarked';
+    }
 }
 
 // Drag and Drop
