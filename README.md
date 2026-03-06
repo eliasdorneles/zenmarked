@@ -1,20 +1,35 @@
 # zenmarked
 
-A snappy offline-first markdown editor with live preview, CodeMirror syntax highlighting,
-and drag-and-drop image support. It runs as a local web server, you access it in your browser.
+A snappy offline-first markdown editor featuring:
 
-## Usage
+* live preview via [marked.js](https://marked.js.org/)
+* images support: add with drag-and-drop or paste from clipboard
+* syntax highlighting via [CodeMirror](https://codemirror.net/5/)
+* user-friendly shortcuts
 
-<div class="figure align-center">
-  <img src="./images/zenmarked-screenshot-readme.png" alt="Screenshot of ZenMarked">
+It runs as a local web server, you access it in your browser.
+
+<div class="figure">
+  <img src="./images/zenmarked-screenshot-readme.png" alt="Screenshot of ZenMarked in action">
   <p class="caption">ZenMarked being used to update its own README</p>
 </div>
 
+## Installation
 
+You can install with:
 
+    pip install zenmarked
+
+If you use [uv](https://docs.astral.sh/uv/), you can install it with:
+
+    uv tool install zenmarked
+
+Or skip installation and just use it through uvx like so: `uvx zenmarked`
+
+## Usage
 
 ```
-uv run zenmarked [FILE.md] [options]
+zenmarked [FILE.md] [options]
 ```
 
 | Argument | Description |
@@ -33,17 +48,27 @@ uv run zenmarked [FILE.md] [options]
 
 ```bash
 # Open CWD — sidebar shows all .md files, create/edit freely
-uv run zenmarked
+zenmarked
 
 # Open a specific file
-uv run zenmarked notes.md
+zenmarked notes.md
 
 # Light theme, custom port
-uv run zenmarked journal.md --theme light --port 8080
+zenmarked journal.md --theme light --port 8080
 
 # Custom image directory, no autosave
-uv run zenmarked docs/readme.md --image-dir docs/assets/imgs --no-autosave
+zenmarked docs/readme.md --image-dir docs/assets/imgs --no-autosave
 ```
+
+
+## Screenshots
+
+
+<div class="figure">
+  <img src="./images/zenmarked-dark-mode.png" alt="Screenshot of zenmarked in dark mode">
+  <p class="caption">Dark mode</p>
+</div>
+
 
 ## Features
 
