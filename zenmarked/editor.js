@@ -101,6 +101,7 @@ function setupCodeMirror() {
             'Shift-Ctrl-.': () => prefixLines('> '),
             'Shift-Cmd-.': () => prefixLines('> '),
             'Enter': handleEnter,
+            'Backspace': handleBackspace,
         },
     });
 
@@ -441,7 +442,8 @@ function handleEnter() {
             cmEditor.replaceRange('', { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
             cmEditor.replaceSelection('\n');
         } else {
-            cmEditor.replaceSelection('\n' + indent + (parseInt(num) + 1) + '. ');
+            const nextPrefix = indent + (parseInt(num) + 1) + '. ';
+            cmEditor.replaceSelection('\n' + nextPrefix);
         }
         handleBodyInput();
         return;
@@ -455,6 +457,32 @@ function handleEnter() {
         } else {
             cmEditor.replaceSelection('\n' + marker);
         }
+        handleBodyInput();
+        return;
+    }
+
+    return CodeMirror.Pass;
+}
+
+function handleBackspace() {
+    const cursor = cmEditor.getCursor();
+    const line = cmEditor.getLine(cursor.line);
+
+    // Only intercept when cursor is at end of line
+    if (cursor.ch !== line.length) return CodeMirror.Pass;
+
+    // All-whitespace line → delete everything (exit indentation)
+    if (line.length > 0 && /^\s+$/.test(line)) {
+        cmEditor.replaceRange('', { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
+        handleBodyInput();
+        return;
+    }
+
+    // Bare list/blockquote prefix → replace marker chars with spaces, cursor stays
+    if (/^(\s*)([-*+] |\d+\. |> )$/.test(line)) {
+        const spaces = ' '.repeat(line.length);
+        cmEditor.replaceRange(spaces, { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
+        cmEditor.setCursor({ line: cursor.line, ch: line.length });
         handleBodyInput();
         return;
     }
