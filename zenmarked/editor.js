@@ -100,6 +100,7 @@ function setupCodeMirror() {
             'Shift-Cmd-8': () => prefixLines('- '),
             'Shift-Ctrl-.': () => prefixLines('> '),
             'Shift-Cmd-.': () => prefixLines('> '),
+            'Enter': handleEnter,
         },
     });
 
@@ -413,6 +414,53 @@ function wrapSelection(marker) {
 function wrapBold() { wrapSelection('**'); }
 function wrapItalic() { wrapSelection('*'); }
 function wrapCode() { wrapSelection('`'); }
+
+function handleEnter() {
+    const cursor = cmEditor.getCursor();
+    const line = cmEditor.getLine(cursor.line);
+
+    const ulMatch = line.match(/^(\s*)([-*+] )(.*)/);
+    const olMatch = line.match(/^(\s*)(\d+)\. (.*)/);
+    const bqMatch = line.match(/^(> )(.*)/);
+
+    if (ulMatch) {
+        const [, indent, marker, content] = ulMatch;
+        if (!content) {
+            cmEditor.replaceRange('', { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
+            cmEditor.replaceSelection('\n');
+        } else {
+            cmEditor.replaceSelection('\n' + indent + marker);
+        }
+        handleBodyInput();
+        return;
+    }
+
+    if (olMatch) {
+        const [, indent, num, content] = olMatch;
+        if (!content) {
+            cmEditor.replaceRange('', { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
+            cmEditor.replaceSelection('\n');
+        } else {
+            cmEditor.replaceSelection('\n' + indent + (parseInt(num) + 1) + '. ');
+        }
+        handleBodyInput();
+        return;
+    }
+
+    if (bqMatch) {
+        const [, marker, content] = bqMatch;
+        if (!content) {
+            cmEditor.replaceRange('', { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
+            cmEditor.replaceSelection('\n');
+        } else {
+            cmEditor.replaceSelection('\n' + marker);
+        }
+        handleBodyInput();
+        return;
+    }
+
+    return CodeMirror.Pass;
+}
 
 function prefixLines(prefix) {
     const selections = cmEditor.listSelections();
