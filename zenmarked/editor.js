@@ -10,6 +10,7 @@ let editMode = false; // true when editing existing image in place
 let editPosition = null; // { startLine, endLine } of image being edited
 let editIsExternal = false; // true when editing an external URL image
 let contextMenuFilename = null; // filename for context menu actions
+let linkModalSelection = null; // text selected when Ctrl-K was pressed
 let config = {}; // loaded from /api/config
 let serverOnline = true;
 let heartbeatInterval = null;
@@ -84,6 +85,22 @@ function setupCodeMirror() {
         theme: isDark ? 'dracula' : 'default',
         autofocus: false,
         viewportMargin: Infinity,
+        extraKeys: {
+            'Ctrl-B': wrapBold,
+            'Cmd-B': wrapBold,
+            'Ctrl-I': wrapItalic,
+            'Cmd-I': wrapItalic,
+            'Ctrl-E': wrapCode,
+            'Cmd-E': wrapCode,
+            'Ctrl-K': openLinkModal,
+            'Cmd-K': openLinkModal,
+            'Shift-Ctrl-7': () => prefixLines('1. '),
+            'Shift-Cmd-7': () => prefixLines('1. '),
+            'Shift-Ctrl-8': () => prefixLines('- '),
+            'Shift-Cmd-8': () => prefixLines('- '),
+            'Shift-Ctrl-.': () => prefixLines('> '),
+            'Shift-Cmd-.': () => prefixLines('> '),
+        },
     });
 
     cmEditor.on('change', () => {
@@ -378,6 +395,67 @@ function handleBodyInput() {
     scheduleAutoSave();
     clearTimeout(previewTimeout);
     previewTimeout = setTimeout(updatePreview, 200);
+}
+
+function wrapSelection(marker) {
+    const sel = cmEditor.getSelection();
+    if (sel) {
+        cmEditor.replaceSelection(`${marker}${sel}${marker}`);
+    } else {
+        const cursor = cmEditor.getCursor();
+        cmEditor.replaceSelection(`${marker}${marker}`);
+        cmEditor.setCursor({ line: cursor.line, ch: cursor.ch + marker.length });
+    }
+    cmEditor.focus();
+    handleBodyInput();
+}
+
+function wrapBold() { wrapSelection('**'); }
+function wrapItalic() { wrapSelection('*'); }
+function wrapCode() { wrapSelection('`'); }
+
+function prefixLines(prefix) {
+    const selections = cmEditor.listSelections();
+    const startLine = selections[0].anchor.line < selections[0].head.line
+        ? selections[0].anchor.line : selections[0].head.line;
+    const endLine = selections[0].anchor.line > selections[0].head.line
+        ? selections[0].anchor.line : selections[0].head.line;
+    for (let i = startLine; i <= endLine; i++) {
+        cmEditor.replaceRange(prefix, { line: i, ch: 0 });
+    }
+    handleBodyInput();
+}
+
+// Link Modal
+function openLinkModal() {
+    linkModalSelection = cmEditor.getSelection();
+    if (linkModalSelection) {
+        document.getElementById('linkTextPreview').textContent = linkModalSelection;
+        document.getElementById('linkUrl').value = '';
+        document.getElementById('linkModal').classList.add('active');
+        setTimeout(() => document.getElementById('linkUrl').focus(), 100);
+    } else {
+        const cursor = cmEditor.getCursor();
+        cmEditor.replaceSelection('[](url)');
+        cmEditor.setCursor({ line: cursor.line, ch: cursor.ch + 1 });
+        cmEditor.focus();
+        handleBodyInput();
+    }
+}
+
+function closeLinkModal() {
+    document.getElementById('linkModal').classList.remove('active');
+    linkModalSelection = null;
+    cmEditor.focus();
+}
+
+function submitLink() {
+    const url = document.getElementById('linkUrl').value.trim();
+    if (!url) return;
+    cmEditor.replaceSelection(`[${linkModalSelection}](${url})`);
+    closeLinkModal();
+    cmEditor.focus();
+    handleBodyInput();
 }
 
 function escapeHtml(text) {
@@ -675,6 +753,7 @@ function setupKeyboardShortcuts() {
         if (e.key === 'Escape') {
             closeImageModal();
             closeRenameModal();
+            closeLinkModal();
         }
 
         if (e.key === 'Enter' && document.getElementById('imageModal').classList.contains('active')) {
@@ -687,6 +766,11 @@ function setupKeyboardShortcuts() {
         if (e.key === 'Enter' && document.getElementById('renameModal').classList.contains('active')) {
             e.preventDefault();
             submitRename();
+        }
+
+        if (e.key === 'Enter' && document.getElementById('linkModal').classList.contains('active')) {
+            e.preventDefault();
+            submitLink();
         }
     });
 }

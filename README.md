@@ -100,3 +100,10 @@ The image target directory can be overriden through option `--image-dir PATH`
 | `Ctrl+S` | Save current file |
 | `Alt+N` | Create new file |
 | `Escape` | Close modals |
+| `Ctrl+B` | Bold |
+| `Ctrl+I` | Italic |
+| `Ctrl+E` | Inline code |
+| `Ctrl+K` | Insert link |
+| `Ctrl+Shift+7` | Ordered list |
+| `Ctrl+Shift+8` | Unordered list |
+| `Ctrl+Shift+.` | Blockquote |

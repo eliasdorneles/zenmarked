@@ -165,6 +165,25 @@
         </div>
     </div>
 
+    <!-- Link Insertion Modal -->
+    <div class="modal-overlay" id="linkModal">
+        <div class="modal">
+            <h2>Insert Link</h2>
+            <div class="modal-field">
+                <label>Link Text</label>
+                <div class="current-filename" id="linkTextPreview"></div>
+            </div>
+            <div class="modal-field">
+                <label>URL</label>
+                <input type="url" id="linkUrl" placeholder="https://...">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeLinkModal()">Cancel</button>
+                <button class="btn" id="linkModalSubmit" onclick="submitLink()">Insert</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Server Disconnection Modal -->
     <div id="serverDownOverlay" class="server-down-overlay hidden">
         <div class="server-down-modal">
