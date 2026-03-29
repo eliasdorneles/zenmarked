@@ -72,8 +72,6 @@ def main():
     else:
         image_dir = working_dir / "images"
 
-    image_dir.mkdir(parents=True, exist_ok=True)
-
     # Relative name of image dir as seen from working dir (used in markdown paths)
     try:
         image_dir_rel = image_dir.relative_to(working_dir)
@@ -274,6 +272,8 @@ def main():
 
     @app.route("/api/images", methods=["GET"])
     def list_images():
+        if not image_dir.exists():
+            return jsonify([])
         images = []
         for ext in allowed_image_extensions:
             for filepath in image_dir.glob(f"*.{ext}"):
@@ -301,6 +301,7 @@ def main():
         file_data = file.read()
         processed_data, filename = process_image(file_data, filename)
 
+        image_dir.mkdir(parents=True, exist_ok=True)
         filepath = image_dir / filename
         counter = 1
         base, ext_with_dot = os.path.splitext(filename)
