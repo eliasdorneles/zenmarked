@@ -41,6 +41,8 @@ def parse_args():
     )
     parser.add_argument("--no-autosave", action="store_true", help="Disable auto-save (Ctrl+S only)")
     parser.add_argument("--theme", choices=["light", "dark"], default=None, help="Color theme (default: light)")
+    parser.add_argument("--mode", choices=["split", "edit", "preview"], default="split",
+                        help="View mode (default: split)")
     parser.add_argument("--no-browser", action="store_true", help="Don't auto-open browser on start")
     return parser.parse_args()
 
@@ -81,6 +83,7 @@ def main():
     autosave_enabled = not args.no_autosave
     theme = args.theme or "light"
     theme_explicit = args.theme is not None
+    view_mode = args.mode
     port = args.port
 
     print(f"Working directory: {working_dir}")
@@ -201,6 +204,7 @@ def main():
             "autosave": autosave_enabled,
             "theme": theme,
             "themeExplicit": theme_explicit,
+            "viewMode": view_mode,
             "initialFile": initial_file,
             "workingDir": str(working_dir),
             "imagePrefix": image_markdown_prefix(),

@@ -227,6 +227,52 @@ body.theme-light .theme-toggle .icon-moon { display: block; }
     margin-bottom: 12px;
 }
 
+.sidebar-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mode-toggle {
+    display: flex;
+    border: 1px solid var(--sidebar-border);
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.mode-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--sidebar-text);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s, color 0.2s;
+}
+
+.mode-btn + .mode-btn {
+    border-left: 1px solid var(--sidebar-border);
+}
+
+.mode-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.mode-btn.active {
+    background: var(--accent-color);
+    color: white;
+}
+
+.mode-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
 .search-input {
     width: 100%;
     padding: 8px 12px;
@@ -1122,4 +1168,18 @@ body.theme-light .CodeMirror-selected {
     background: var(--accent-hover);
     border-color: var(--accent-hover);
     color: white;
+}
+
+/* ── View Mode Layouts ───────────────────────────────────────────────────── */
+
+body.mode-edit .preview-panel,
+body.mode-preview .editor-panel,
+body.mode-edit #resizeHandle2,
+body.mode-preview #resizeHandle2 {
+    display: none;
+}
+
+body.mode-edit .container,
+body.mode-preview .container {
+    grid-template-columns: 260px 4px 1fr !important;
 }

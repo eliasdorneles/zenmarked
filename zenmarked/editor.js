@@ -14,6 +14,7 @@ let linkModalSelection = null; // text selected when Ctrl-K was pressed
 let config = {}; // loaded from /api/config
 let serverOnline = true;
 let heartbeatInterval = null;
+let viewMode = 'split';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -47,8 +48,16 @@ async function loadConfig() {
         config = await response.json();
     } catch (error) {
         console.error('Failed to load config:', error);
-        config = { autosave: true, theme: 'dark', initialFile: null, imagePrefix: './images/' };
+        config = { autosave: true, theme: 'dark', initialFile: null, imagePrefix: './images/', viewMode: null };
     }
+
+    const savedMode = localStorage.getItem('zenmarked-mode');
+    if (config.viewMode) {
+        viewMode = config.viewMode;
+    } else if (savedMode) {
+        viewMode = savedMode;
+    }
+    setViewMode(viewMode);
 }
 
 // Apply theme class to body and update CodeMirror theme
@@ -72,6 +81,28 @@ function toggleTheme() {
     const newTheme = isDark ? 'light' : 'dark';
     applyTheme(newTheme);
     localStorage.setItem('zenmarked-theme', newTheme);
+}
+
+function setViewMode(mode) {
+    viewMode = mode;
+    document.body.classList.remove('mode-split', 'mode-edit', 'mode-preview');
+    document.body.classList.add(`mode-${mode}`);
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+
+    if (mode !== 'preview' && currentFile) {
+        cmEditor.refresh();
+    }
+
+    localStorage.setItem('zenmarked-mode', mode);
+}
+
+function cycleViewMode() {
+    const modes = ['split', 'edit', 'preview'];
+    const idx = modes.indexOf(viewMode);
+    setViewMode(modes[(idx + 1) % 3]);
 }
 
 // Setup CodeMirror
@@ -826,6 +857,11 @@ function setupKeyboardShortcuts() {
             createNewFile();
         }
 
+        if (e.ctrlKey && e.key === '\\') {
+            e.preventDefault();
+            cycleViewMode();
+        }
+
         if (e.key === 'Escape') {
             closeImageModal();
             closeRenameModal();
@@ -1173,6 +1209,7 @@ function initResizableColumns() {
 
     function makeResizable(handle, computeNewPx) {
         handle.addEventListener('mousedown', (e) => {
+            if (viewMode !== 'split') return;
             e.preventDefault();
             document.body.classList.add('resizing');
             handle.classList.add('dragging');
