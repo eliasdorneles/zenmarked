@@ -42,6 +42,7 @@ zenmarked [FILE.md] [options]
 | `--image-dir PATH` | Directory for uploaded images (default: `images/` inside working dir) |
 | `--no-autosave` | Disable auto-save (use Ctrl+S only) |
 | `--theme THEME` | Color theme: `light` or `dark` (default: `dark`) |
+| `--mode MODE` | View mode: `split`, `edit`, or `preview` (default: `split`) |
 | `--no-browser` | Don't auto-open browser on start |
 
 ### Examples
@@ -55,6 +56,9 @@ zenmarked notes.md
 
 # Light theme, custom port
 zenmarked journal.md --theme light --port 8080
+
+# Open in preview-only mode (editor hidden)
+zenmarked draft.md --mode preview
 
 # Custom image directory, no autosave
 zenmarked docs/readme.md --image-dir docs/assets/imgs --no-autosave
@@ -73,6 +77,7 @@ zenmarked docs/readme.md --image-dir docs/assets/imgs --no-autosave
 ## Features
 
 - **3-column layout**: sidebar (file list + image gallery) + editor + live preview
+- **View modes**: split (editor + preview), edit (editor only), or preview (preview only) — toggle via the segmented control in the sidebar or cycle with `Ctrl+\`
 - **Markdown syntax highlight** via [CodeMirror](https://codemirror.net/5/)
 - **Live preview** via [marked.js](https://marked.js.org/), updates as you type
 - **Auto-save** enabled by default, **Ctrl+S** to save manually at any time
@@ -99,6 +104,7 @@ The image target directory can be overriden through option `--image-dir PATH`
 |----------|--------|
 | `Ctrl+S` | Save current file |
 | `Alt+N` | Create new file |
+| `Ctrl+\` | Cycle view mode (split → edit → preview) |
 | `Escape` | Close modals |
 | `Ctrl+B` | Bold |
 | `Ctrl+I` | Italic |
