@@ -179,17 +179,23 @@ def main():
     def rel_name(filepath: Path) -> str:
         return filepath.relative_to(working_dir).as_posix()
 
-    def image_markdown_prefix() -> str:
-        """Return the markdown path prefix for images, e.g. './images/'"""
-        return f"./{image_dir_rel}/"
+    def image_markdown_prefix(md_filepath: Path | None = None) -> str:
+        """Markdown path prefix for images as seen from the given file's directory, e.g. './images/' or '../images/'"""
+        base = md_filepath.parent if md_filepath else working_dir
+        try:
+            rel = Path(os.path.relpath(image_dir, base)).as_posix()
+        except ValueError:
+            rel = image_dir_rel.as_posix()
+        if rel == ".":
+            return "./"
+        return f"{rel}/" if rel.startswith("..") else f"./{rel}/"
 
     def find_files_with_image(filename: str) -> list[dict]:
         """Find all .md files in working_dir that reference the given image filename."""
-        prefix = image_markdown_prefix()
-        pattern = re.compile(re.escape(f"{prefix}{filename}"))
         refs = []
         for filepath in iter_md_files():
             try:
+                pattern = re.compile(re.escape(f"{image_markdown_prefix(filepath)}{filename}"))
                 content = filepath.read_text(encoding="utf-8")
                 matches = pattern.findall(content)
                 if matches:
@@ -202,8 +208,8 @@ def main():
                 print(f"Error reading {filepath}: {e}")
         return refs
 
-    def update_image_references(content: str, old_filename: str, new_filename: str) -> str:
-        prefix = image_markdown_prefix()
+    def update_image_references(content: str, old_filename: str, new_filename: str, md_filepath: Path) -> str:
+        prefix = image_markdown_prefix(md_filepath)
         return content.replace(f"{prefix}{old_filename}", f"{prefix}{new_filename}")
 
     # ── Routes ───────────────────────────────────────────────────────────────────
@@ -267,7 +273,11 @@ def main():
             return jsonify({"error": "File not found"}), 404
 
         content = filepath.read_text(encoding="utf-8")
-        return jsonify({"filename": filename, "content": content})
+        return jsonify({
+            "filename": filename,
+            "content": content,
+            "imagePrefix": image_markdown_prefix(filepath),
+        })
 
     @app.route("/api/files/<path:filename>", methods=["PUT"])
     def save_file(filename: str):
@@ -377,9 +387,9 @@ def main():
         for md_filepath in iter_md_files():
             try:
                 content = md_filepath.read_text(encoding="utf-8")
-                prefix = image_markdown_prefix()
+                prefix = image_markdown_prefix(md_filepath)
                 if f"{prefix}{filename}" in content:
-                    updated_content = update_image_references(content, filename, new_filename)
+                    updated_content = update_image_references(content, filename, new_filename, md_filepath)
                     md_filepath.write_text(updated_content, encoding="utf-8")
                     files_updated.append({"filename": rel_name(md_filepath), "title": md_filepath.stem})
             except Exception as e:
@@ -394,7 +404,7 @@ def main():
                 md_filepath = working_dir / info["filename"]
                 try:
                     content = md_filepath.read_text(encoding="utf-8")
-                    md_filepath.write_text(update_image_references(content, new_filename, filename), encoding="utf-8")
+                    md_filepath.write_text(update_image_references(content, new_filename, filename, md_filepath), encoding="utf-8")
                 except Exception:
                     pass
             return jsonify({"error": f"Failed to rename file: {e}"}), 500

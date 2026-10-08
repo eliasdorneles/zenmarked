@@ -172,7 +172,7 @@ async function loadFile(filename) {
             return;
         }
         const data = await response.json();
-        currentFile = { filename: data.filename, content: data.content };
+        currentFile = { filename: data.filename, content: data.content, imagePrefix: data.imagePrefix };
         renderEditor();
         updatePreview();
 
@@ -435,7 +435,7 @@ function renderEditor() {
 
 function updatePreview() {
     const content = cmEditor ? cmEditor.getValue() : '';
-    const prefix = config.imagePrefix || './images/';
+    const prefix = currentFile?.imagePrefix || config.imagePrefix || './images/';
 
     // Replace relative image paths with serveable URLs for preview
     let previewContent = content.replace(
@@ -840,7 +840,7 @@ function insertImage() {
     const alignment = document.querySelector('input[name="alignment"]:checked').value;
     const width = widthMode === 'custom' ? document.getElementById('imageWidth').value : null;
 
-    const prefix = config.imagePrefix || './images/';
+    const prefix = currentFile?.imagePrefix || config.imagePrefix || './images/';
     const imgPath = editIsExternal ? filename : `${prefix}${filename}`;
 
     let code = '';
@@ -984,7 +984,7 @@ function extractWidth(element) {
 function findImageInSource(filename) {
     const content = cmEditor.getValue();
     const lines = content.split('\n');
-    const prefix = config.imagePrefix || './images/';
+    const prefix = currentFile?.imagePrefix || config.imagePrefix || './images/';
     const escapedFilename = escapeRegex(filename);
     const escapedPrefix = escapeRegex(prefix);
 
