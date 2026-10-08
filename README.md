@@ -34,7 +34,7 @@ zenmarked [FILE.md] [options]
 
 | Argument | Description |
 |----------|-------------|
-| `FILE.md` | Optional. File to open on start (created if it doesn't exist). Its directory becomes the working directory. |
+| `FILE.md` | Optional. File to open on start (created if it doesn't exist). Its directory becomes the working directory. Markdown files in its subdirectories are listed in the sidebar too. |
 
 | Option | Description |
 |--------|-------------|

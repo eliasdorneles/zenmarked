@@ -257,7 +257,7 @@ async function createNewFile() {
         showServerDownModal();
         return;
     }
-    const filename = prompt('Enter filename:', 'untitled.md');
+    const filename = prompt('Enter filename (use folder/name.md for subdirectories):', 'untitled.md');
     if (!filename) return;
 
     try {
@@ -335,6 +335,17 @@ async function uploadImage(file) {
 }
 
 // Rendering functions
+const collapsedDirs = new Set();
+
+function toggleDir(dir) {
+    if (collapsedDirs.has(dir)) {
+        collapsedDirs.delete(dir);
+    } else {
+        collapsedDirs.add(dir);
+    }
+    renderFileList();
+}
+
 function renderFileList() {
     const container = document.getElementById('fileList');
     const search = document.getElementById('searchInput').value.toLowerCase();
@@ -348,13 +359,46 @@ function renderFileList() {
         return;
     }
 
-    container.innerHTML = filtered.map(f => `
+    // Build a tree from the relative paths
+    const root = { dirs: {}, files: [] };
+    for (const f of filtered) {
+        const parts = f.filename.split('/');
+        let node = root;
+        for (const part of parts.slice(0, -1)) {
+            node.dirs[part] = node.dirs[part] || { dirs: {}, files: [] };
+            node = node.dirs[part];
+        }
+        node.files.push({ name: parts[parts.length - 1], filename: f.filename });
+    }
+
+    const renderNode = (node, prefix, depth) => {
+        let html = '';
+        for (const dir of Object.keys(node.dirs).sort()) {
+            const path = prefix + dir;
+            const collapsed = !search && collapsedDirs.has(path);
+            html += `
+        <div class="dir-item" style="padding-left: ${12 + depth * 14}px"
+             onclick="toggleDir('${escapeAttr(path)}')">
+            <span class="dir-arrow">${collapsed ? '▸' : '▾'}</span>
+            <span class="file-item-name">${escapeHtml(dir)}/</span>
+        </div>`;
+            if (!collapsed) {
+                html += renderNode(node.dirs[dir], path + '/', depth + 1);
+            }
+        }
+        for (const f of node.files) {
+            html += `
         <div class="file-item ${currentFile?.filename === f.filename ? 'active' : ''}"
+             style="padding-left: ${12 + depth * 14}px"
              data-filename="${escapeHtml(f.filename)}"
              onclick="loadFile('${escapeAttr(f.filename)}')">
-            <div class="file-item-name">${escapeHtml(f.filename)}</div>
-        </div>
-    `).join('');
+            <div class="file-item-name">${escapeHtml(f.name)}</div>
+        </div>`;
+        }
+        return html;
+    };
+
+    container.innerHTML = renderNode(root, '', 0);
 }
 
 function renderImageGallery() {

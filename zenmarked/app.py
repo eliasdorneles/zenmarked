@@ -96,6 +96,7 @@ def main():
     max_image_width = 1200
     jpeg_quality = 85
     png_compress_level = 6
+    ignored_dirs = {"node_modules", "__pycache__", "venv", "site-packages"}
 
     app = Flask(__name__)
 
@@ -159,11 +160,24 @@ def main():
             return file_data, filename
 
     def safe_file_path(filename: str) -> Path | None:
-        """Return absolute path only if it resolves inside working_dir."""
+        """Return absolute path only if it resolves inside working_dir (subdirectories allowed)."""
         path = (working_dir / filename).resolve()
-        if path.parent == working_dir and path.suffix == ".md":
+        if path.suffix == ".md" and path != working_dir and working_dir in path.parents:
             return path
         return None
+
+    def iter_md_files() -> list[Path]:
+        """All .md files under working_dir, skipping hidden and dependency directories."""
+        found = []
+        for root, dirs, names in os.walk(working_dir):
+            dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d not in ignored_dirs)
+            for name in sorted(names):
+                if name.endswith(".md") and not name.startswith("."):
+                    found.append(Path(root) / name)
+        return found
+
+    def rel_name(filepath: Path) -> str:
+        return filepath.relative_to(working_dir).as_posix()
 
     def image_markdown_prefix() -> str:
         """Return the markdown path prefix for images, e.g. './images/'"""
@@ -174,13 +188,13 @@ def main():
         prefix = image_markdown_prefix()
         pattern = re.compile(re.escape(f"{prefix}{filename}"))
         refs = []
-        for filepath in working_dir.glob("*.md"):
+        for filepath in iter_md_files():
             try:
                 content = filepath.read_text(encoding="utf-8")
                 matches = pattern.findall(content)
                 if matches:
                     refs.append({
-                        "filename": filepath.name,
+                        "filename": rel_name(filepath),
                         "title": filepath.stem,
                         "ref_count": len(matches),
                     })
@@ -213,9 +227,9 @@ def main():
     @app.route("/api/files", methods=["GET"])
     def list_files():
         files = []
-        for filepath in sorted(working_dir.glob("*.md"), key=lambda p: p.name):
+        for filepath in iter_md_files():
             files.append({
-                "filename": filepath.name,
+                "filename": rel_name(filepath),
                 "modified": filepath.stat().st_mtime,
             })
         return jsonify(files)
@@ -231,18 +245,22 @@ def main():
         if not filename.endswith(".md"):
             filename += ".md"
 
-        filename = sanitize_filename(filename)
-        if not filename or filename == ".md":
+        parts = [sanitize_filename(p) for p in filename.replace("\\", "/").split("/") if p not in ("", ".")]
+        if not parts or any(p in ("", ".", "..") or p.startswith(".") for p in parts) or parts[-1] == ".md":
             return jsonify({"error": "Invalid filename"}), 400
+        filename = "/".join(parts)
 
-        filepath = working_dir / filename
+        filepath = safe_file_path(filename)
+        if not filepath:
+            return jsonify({"error": "Invalid filename"}), 400
         if filepath.exists():
             return jsonify({"error": f"File '{filename}' already exists"}), 400
 
+        filepath.parent.mkdir(parents=True, exist_ok=True)
         filepath.write_text("", encoding="utf-8")
         return jsonify({"success": True, "filename": filename})
 
-    @app.route("/api/files/<filename>", methods=["GET"])
+    @app.route("/api/files/<path:filename>", methods=["GET"])
     def get_file(filename: str):
         filepath = safe_file_path(filename)
         if not filepath or not filepath.exists():
@@ -251,7 +269,7 @@ def main():
         content = filepath.read_text(encoding="utf-8")
         return jsonify({"filename": filename, "content": content})
 
-    @app.route("/api/files/<filename>", methods=["PUT"])
+    @app.route("/api/files/<path:filename>", methods=["PUT"])
     def save_file(filename: str):
         filepath = safe_file_path(filename)
         if not filepath:
@@ -265,7 +283,7 @@ def main():
         filepath.write_text(content, encoding="utf-8")
         return jsonify({"success": True, "filename": filename})
 
-    @app.route("/api/files/<filename>", methods=["DELETE"])
+    @app.route("/api/files/<path:filename>", methods=["DELETE"])
     def delete_file(filename: str):
         filepath = safe_file_path(filename)
         if not filepath or not filepath.exists():
@@ -356,14 +374,14 @@ def main():
 
         # Update references in all .md files
         files_updated = []
-        for md_filepath in working_dir.glob("*.md"):
+        for md_filepath in iter_md_files():
             try:
                 content = md_filepath.read_text(encoding="utf-8")
                 prefix = image_markdown_prefix()
                 if f"{prefix}{filename}" in content:
                     updated_content = update_image_references(content, filename, new_filename)
                     md_filepath.write_text(updated_content, encoding="utf-8")
-                    files_updated.append({"filename": md_filepath.name, "title": md_filepath.stem})
+                    files_updated.append({"filename": rel_name(md_filepath), "title": md_filepath.stem})
             except Exception as e:
                 print(f"Error updating {md_filepath}: {e}")
 
