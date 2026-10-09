@@ -360,12 +360,13 @@ function renderFileList() {
     }
 
     // Build a tree from the relative paths
-    const root = { dirs: {}, files: [] };
+    const newNode = () => ({ dirs: Object.create(null), files: [] });
+    const root = newNode();
     for (const f of filtered) {
         const parts = f.filename.split('/');
         let node = root;
         for (const part of parts.slice(0, -1)) {
-            node.dirs[part] = node.dirs[part] || { dirs: {}, files: [] };
+            node.dirs[part] = node.dirs[part] || newNode();
             node = node.dirs[part];
         }
         node.files.push({ name: parts[parts.length - 1], filename: f.filename });
