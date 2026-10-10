@@ -3,7 +3,7 @@
 zenmarked — Standalone Markdown Editor
 
 A local markdown editor with drag-and-drop images, live preview, and auto-save.
-Usage: python zenmarked.py [FILE.md] [--port PORT] [--image-dir PATH] [--no-autosave] [--theme THEME] [--no-browser]
+Usage: python zenmarked.py [FILE.md|DIR] [--port PORT] [--image-dir PATH] [--no-autosave] [--theme THEME] [--no-browser]
 """
 
 import argparse
@@ -29,9 +29,9 @@ def parse_args():
     parser.add_argument(
         "file",
         nargs="?",
-        metavar="FILE.md",
-        help="Markdown file to open (created if it doesn't exist). "
-             "Its directory becomes the working directory.",
+        metavar="FILE.md|DIR",
+        help="Markdown file or directory to open. A directory becomes the working directory; "
+             "for a file (created if it doesn't exist), its directory becomes the working directory.",
     )
     parser.add_argument("--port", type=int, default=0, help="Port to listen on (default: auto-assign)")
     parser.add_argument(
@@ -58,10 +58,14 @@ def main():
 
     if args.file:
         target = Path(args.file).resolve()
-        working_dir = target.parent
-        initial_file = target.name
+        if target.is_dir():
+            working_dir = target
+            initial_file = None
+        else:
+            working_dir = target.parent
+            initial_file = target.name
         # Create file if it doesn't exist
-        if not target.exists():
+        if not target.is_dir() and not target.exists():
             working_dir.mkdir(parents=True, exist_ok=True)
             target.write_text("", encoding="utf-8")
             print(f"Created new file: {target}")
