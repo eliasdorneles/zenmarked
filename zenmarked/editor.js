@@ -172,7 +172,7 @@ async function loadFile(filename) {
             return;
         }
         const data = await response.json();
-        currentFile = { filename: data.filename, content: data.content };
+        currentFile = { filename: data.filename, content: data.content, imagePrefix: data.imagePrefix };
         renderEditor();
         updatePreview();
 
@@ -257,7 +257,7 @@ async function createNewFile() {
         showServerDownModal();
         return;
     }
-    const filename = prompt('Enter filename:', 'untitled.md');
+    const filename = prompt('Enter filename (use folder/name.md for subdirectories):', 'untitled.md');
     if (!filename) return;
 
     try {
@@ -335,6 +335,17 @@ async function uploadImage(file) {
 }
 
 // Rendering functions
+const collapsedDirs = new Set();
+
+function toggleDir(dir) {
+    if (collapsedDirs.has(dir)) {
+        collapsedDirs.delete(dir);
+    } else {
+        collapsedDirs.add(dir);
+    }
+    renderFileList();
+}
+
 function renderFileList() {
     const container = document.getElementById('fileList');
     const search = document.getElementById('searchInput').value.toLowerCase();
@@ -348,13 +359,47 @@ function renderFileList() {
         return;
     }
 
-    container.innerHTML = filtered.map(f => `
+    // Build a tree from the relative paths
+    const newNode = () => ({ dirs: Object.create(null), files: [] });
+    const root = newNode();
+    for (const f of filtered) {
+        const parts = f.filename.split('/');
+        let node = root;
+        for (const part of parts.slice(0, -1)) {
+            node.dirs[part] = node.dirs[part] || newNode();
+            node = node.dirs[part];
+        }
+        node.files.push({ name: parts[parts.length - 1], filename: f.filename });
+    }
+
+    const renderNode = (node, prefix, depth) => {
+        let html = '';
+        for (const dir of Object.keys(node.dirs).sort()) {
+            const path = prefix + dir;
+            const collapsed = !search && collapsedDirs.has(path);
+            html += `
+        <div class="dir-item" style="padding-left: ${12 + depth * 14}px"
+             onclick="toggleDir('${escapeAttr(path)}')">
+            <span class="dir-arrow">${collapsed ? '▸' : '▾'}</span>
+            <span class="file-item-name">${escapeHtml(dir)}/</span>
+        </div>`;
+            if (!collapsed) {
+                html += renderNode(node.dirs[dir], path + '/', depth + 1);
+            }
+        }
+        for (const f of node.files) {
+            html += `
         <div class="file-item ${currentFile?.filename === f.filename ? 'active' : ''}"
+             style="padding-left: ${12 + depth * 14}px"
              data-filename="${escapeHtml(f.filename)}"
              onclick="loadFile('${escapeAttr(f.filename)}')">
-            <div class="file-item-name">${escapeHtml(f.filename)}</div>
-        </div>
-    `).join('');
+            <div class="file-item-name">${escapeHtml(f.name)}</div>
+        </div>`;
+        }
+        return html;
+    };
+
+    container.innerHTML = renderNode(root, '', 0);
 }
 
 function renderImageGallery() {
@@ -391,7 +436,7 @@ function renderEditor() {
 
 function updatePreview() {
     const content = cmEditor ? cmEditor.getValue() : '';
-    const prefix = config.imagePrefix || './images/';
+    const prefix = currentFile?.imagePrefix || config.imagePrefix || './images/';
 
     // Replace relative image paths with serveable URLs for preview
     let previewContent = content.replace(
@@ -796,7 +841,7 @@ function insertImage() {
     const alignment = document.querySelector('input[name="alignment"]:checked').value;
     const width = widthMode === 'custom' ? document.getElementById('imageWidth').value : null;
 
-    const prefix = config.imagePrefix || './images/';
+    const prefix = currentFile?.imagePrefix || config.imagePrefix || './images/';
     const imgPath = editIsExternal ? filename : `${prefix}${filename}`;
 
     let code = '';
@@ -940,7 +985,7 @@ function extractWidth(element) {
 function findImageInSource(filename) {
     const content = cmEditor.getValue();
     const lines = content.split('\n');
-    const prefix = config.imagePrefix || './images/';
+    const prefix = currentFile?.imagePrefix || config.imagePrefix || './images/';
     const escapedFilename = escapeRegex(filename);
     const escapedPrefix = escapeRegex(prefix);
 

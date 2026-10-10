@@ -3,7 +3,7 @@
 zenmarked — Standalone Markdown Editor
 
 A local markdown editor with drag-and-drop images, live preview, and auto-save.
-Usage: python zenmarked.py [FILE.md] [--port PORT] [--image-dir PATH] [--no-autosave] [--theme THEME] [--no-browser]
+Usage: python zenmarked.py [FILE.md|DIR] [--port PORT] [--image-dir PATH] [--no-autosave] [--theme THEME] [--no-browser]
 """
 
 import argparse
@@ -29,9 +29,9 @@ def parse_args():
     parser.add_argument(
         "file",
         nargs="?",
-        metavar="FILE.md",
-        help="Markdown file to open (created if it doesn't exist). "
-             "Its directory becomes the working directory.",
+        metavar="FILE.md|DIR",
+        help="Markdown file or directory to open. A directory becomes the working directory; "
+             "for a file (created if it doesn't exist), its directory becomes the working directory.",
     )
     parser.add_argument("--port", type=int, default=0, help="Port to listen on (default: auto-assign)")
     parser.add_argument(
@@ -58,10 +58,14 @@ def main():
 
     if args.file:
         target = Path(args.file).resolve()
-        working_dir = target.parent
-        initial_file = target.name
+        if target.is_dir():
+            working_dir = target
+            initial_file = None
+        else:
+            working_dir = target.parent
+            initial_file = target.name
         # Create file if it doesn't exist
-        if not target.exists():
+        if not target.is_dir() and not target.exists():
             working_dir.mkdir(parents=True, exist_ok=True)
             target.write_text("", encoding="utf-8")
             print(f"Created new file: {target}")
@@ -96,6 +100,7 @@ def main():
     max_image_width = 1200
     jpeg_quality = 85
     png_compress_level = 6
+    ignored_dirs = {"node_modules", "__pycache__", "venv", "site-packages"}
 
     app = Flask(__name__)
 
@@ -159,28 +164,47 @@ def main():
             return file_data, filename
 
     def safe_file_path(filename: str) -> Path | None:
-        """Return absolute path only if it resolves inside working_dir."""
+        """Return absolute path only if it resolves inside working_dir (subdirectories allowed)."""
         path = (working_dir / filename).resolve()
-        if path.parent == working_dir and path.suffix == ".md":
+        if path.suffix == ".md" and path != working_dir and working_dir in path.parents:
             return path
         return None
 
-    def image_markdown_prefix() -> str:
-        """Return the markdown path prefix for images, e.g. './images/'"""
-        return f"./{image_dir_rel}/"
+    def iter_md_files() -> list[Path]:
+        """All .md files under working_dir, skipping hidden and dependency directories."""
+        found = []
+        for root, dirs, names in os.walk(working_dir):
+            dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d not in ignored_dirs)
+            for name in sorted(names):
+                if name.endswith(".md") and not name.startswith("."):
+                    found.append(Path(root) / name)
+        return found
+
+    def rel_name(filepath: Path) -> str:
+        return filepath.relative_to(working_dir).as_posix()
+
+    def image_markdown_prefix(md_filepath: Path | None = None) -> str:
+        """Markdown path prefix for images as seen from the given file's directory, e.g. './images/' or '../images/'"""
+        base = md_filepath.parent if md_filepath else working_dir
+        try:
+            rel = Path(os.path.relpath(image_dir, base)).as_posix()
+        except ValueError:
+            rel = image_dir_rel.as_posix()
+        if rel == ".":
+            return "./"
+        return f"{rel}/" if rel.startswith("..") else f"./{rel}/"
 
     def find_files_with_image(filename: str) -> list[dict]:
         """Find all .md files in working_dir that reference the given image filename."""
-        prefix = image_markdown_prefix()
-        pattern = re.compile(re.escape(f"{prefix}{filename}"))
         refs = []
-        for filepath in working_dir.glob("*.md"):
+        for filepath in iter_md_files():
             try:
+                pattern = re.compile(re.escape(f"{image_markdown_prefix(filepath)}{filename}"))
                 content = filepath.read_text(encoding="utf-8")
                 matches = pattern.findall(content)
                 if matches:
                     refs.append({
-                        "filename": filepath.name,
+                        "filename": rel_name(filepath),
                         "title": filepath.stem,
                         "ref_count": len(matches),
                     })
@@ -188,8 +212,8 @@ def main():
                 print(f"Error reading {filepath}: {e}")
         return refs
 
-    def update_image_references(content: str, old_filename: str, new_filename: str) -> str:
-        prefix = image_markdown_prefix()
+    def update_image_references(content: str, old_filename: str, new_filename: str, md_filepath: Path) -> str:
+        prefix = image_markdown_prefix(md_filepath)
         return content.replace(f"{prefix}{old_filename}", f"{prefix}{new_filename}")
 
     # ── Routes ───────────────────────────────────────────────────────────────────
@@ -213,9 +237,9 @@ def main():
     @app.route("/api/files", methods=["GET"])
     def list_files():
         files = []
-        for filepath in sorted(working_dir.glob("*.md"), key=lambda p: p.name):
+        for filepath in iter_md_files():
             files.append({
-                "filename": filepath.name,
+                "filename": rel_name(filepath),
                 "modified": filepath.stat().st_mtime,
             })
         return jsonify(files)
@@ -231,27 +255,35 @@ def main():
         if not filename.endswith(".md"):
             filename += ".md"
 
-        filename = sanitize_filename(filename)
-        if not filename or filename == ".md":
+        parts = [sanitize_filename(p) for p in filename.replace("\\", "/").split("/") if p not in ("", ".")]
+        if not parts or any(p in ("", ".", "..") or p.startswith(".") for p in parts) or parts[-1] == ".md":
             return jsonify({"error": "Invalid filename"}), 400
+        filename = "/".join(parts)
 
-        filepath = working_dir / filename
+        filepath = safe_file_path(filename)
+        if not filepath:
+            return jsonify({"error": "Invalid filename"}), 400
         if filepath.exists():
             return jsonify({"error": f"File '{filename}' already exists"}), 400
 
+        filepath.parent.mkdir(parents=True, exist_ok=True)
         filepath.write_text("", encoding="utf-8")
         return jsonify({"success": True, "filename": filename})
 
-    @app.route("/api/files/<filename>", methods=["GET"])
+    @app.route("/api/files/<path:filename>", methods=["GET"])
     def get_file(filename: str):
         filepath = safe_file_path(filename)
         if not filepath or not filepath.exists():
             return jsonify({"error": "File not found"}), 404
 
         content = filepath.read_text(encoding="utf-8")
-        return jsonify({"filename": filename, "content": content})
+        return jsonify({
+            "filename": filename,
+            "content": content,
+            "imagePrefix": image_markdown_prefix(filepath),
+        })
 
-    @app.route("/api/files/<filename>", methods=["PUT"])
+    @app.route("/api/files/<path:filename>", methods=["PUT"])
     def save_file(filename: str):
         filepath = safe_file_path(filename)
         if not filepath:
@@ -265,7 +297,7 @@ def main():
         filepath.write_text(content, encoding="utf-8")
         return jsonify({"success": True, "filename": filename})
 
-    @app.route("/api/files/<filename>", methods=["DELETE"])
+    @app.route("/api/files/<path:filename>", methods=["DELETE"])
     def delete_file(filename: str):
         filepath = safe_file_path(filename)
         if not filepath or not filepath.exists():
@@ -356,14 +388,14 @@ def main():
 
         # Update references in all .md files
         files_updated = []
-        for md_filepath in working_dir.glob("*.md"):
+        for md_filepath in iter_md_files():
             try:
                 content = md_filepath.read_text(encoding="utf-8")
-                prefix = image_markdown_prefix()
+                prefix = image_markdown_prefix(md_filepath)
                 if f"{prefix}{filename}" in content:
-                    updated_content = update_image_references(content, filename, new_filename)
+                    updated_content = update_image_references(content, filename, new_filename, md_filepath)
                     md_filepath.write_text(updated_content, encoding="utf-8")
-                    files_updated.append({"filename": md_filepath.name, "title": md_filepath.stem})
+                    files_updated.append({"filename": rel_name(md_filepath), "title": md_filepath.stem})
             except Exception as e:
                 print(f"Error updating {md_filepath}: {e}")
 
@@ -376,7 +408,7 @@ def main():
                 md_filepath = working_dir / info["filename"]
                 try:
                     content = md_filepath.read_text(encoding="utf-8")
-                    md_filepath.write_text(update_image_references(content, new_filename, filename), encoding="utf-8")
+                    md_filepath.write_text(update_image_references(content, new_filename, filename, md_filepath), encoding="utf-8")
                 except Exception:
                     pass
             return jsonify({"error": f"Failed to rename file: {e}"}), 500

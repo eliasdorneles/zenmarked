@@ -29,12 +29,12 @@ Or skip installation and just use it through uvx like so: `uvx zenmarked`
 ## Usage
 
 ```
-zenmarked [FILE.md] [options]
+zenmarked [FILE.md|DIR] [options]
 ```
 
 | Argument | Description |
 |----------|-------------|
-| `FILE.md` | Optional. File to open on start (created if it doesn't exist). Its directory becomes the working directory. |
+| `FILE.md` or `DIR` | Optional. A directory becomes the working directory. A file is opened on start (created if it doesn't exist) and its directory becomes the working directory. Markdown files in subdirectories are listed in the sidebar too. |
 
 | Option | Description |
 |--------|-------------|

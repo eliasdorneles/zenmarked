@@ -311,6 +311,27 @@ body.theme-light .theme-toggle .icon-moon { display: block; }
     color: var(--sidebar-text);
 }
 
+.dir-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 2px;
+    color: var(--sidebar-text);
+    opacity: 0.8;
+}
+
+.dir-item:hover {
+    background: var(--sidebar-hover);
+}
+
+.dir-arrow {
+    font-size: 11px;
+    width: 10px;
+}
+
 .file-item:hover {
     background: var(--sidebar-hover);
 }
